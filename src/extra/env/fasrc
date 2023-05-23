@@ -4,5 +4,5 @@ export F90=mpif90; echo $F90;
 export CC=mpicc
 
 module purge
-module load intel/21.2.0-fasrc01 openmpi/4.1.0-fasrc01 netcdf-fortran/4.5.3-fasrc03
-module load zlib/1.2.11-fasrc01
+module load intel/23.0.0-fasrc01 openmpi/4.1.4-fasrc01 netcdf-fortran/4.6.0-fasrc01
+module load zlib/1.2.13-fasrc01
