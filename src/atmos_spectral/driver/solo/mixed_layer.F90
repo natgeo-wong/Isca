@@ -136,6 +136,8 @@ logical :: add_latent_heat_flux_anom = .false.
 character(len=256) :: flux_lhe_anom_file_name  = 'INPUT/flux_lhe_anom.nc'
 character(len=256) :: flux_lhe_anom_field_name = 'flux_lhe_anom'
 
+real :: ape_sst_max = KELVIN + 27.0
+
 namelist/mixed_layer_nml/ evaporation, depth, qflux_amp, qflux_width, tconst,&
                               delta_T, prescribe_initial_dist,albedo_value,  &
                               land_depth,trop_depth,                         &  !mj
@@ -153,7 +155,8 @@ namelist/mixed_layer_nml/ evaporation, depth, qflux_amp, qflux_width, tconst,&
                               ice_albedo_value, specify_sst_over_ocean_only, &
                               ice_concentration_threshold, ice_albedo_method,&
                               add_latent_heat_flux_anom,flux_lhe_anom_file_name,&
-                              flux_lhe_anom_field_name, do_ape_sst, qflux_field_name
+                              flux_lhe_anom_field_name, qflux_field_name,    &
+                              do_ape_sst, ape_sst_max
 
 !=================================================================================================================================
 
@@ -601,6 +604,7 @@ logical, dimension(size(land_mask,1),size(land_mask,2)) :: land_ice_mask
 !local variables
 
 integer :: j
+real :: ape_dsst
 
 if(.not.module_is_initialized) then
   call error_mesg('mixed_layer','mixed_layer module is not initialized',FATAL)
@@ -692,7 +696,9 @@ if(do_sc_sst) then !mj sst read from input file
 end if
 
 if (do_ape_sst) then 
-    !
+    
+    ape_dsst = ape_sst_max-KELVIN
+
     ! AquaPlanet Experiment protocol (APE) from 
     ! Williams et al 2012 tech report: "The APE Atlas"
     !
@@ -704,7 +710,7 @@ if (do_ape_sst) then
     do j=js,je   
         if ( (rad_lat_2d(1,j) .gt. -PI/3.) .and. (rad_lat_2d(1,j) .lt. PI/3.) ) then 
             ! between 60N-60S
-            sst_new(:,j) = KELVIN+( 27.0*( 1. - (sin( 3./2. * rad_lat_2d(:,j) )**2 ) ))  
+            sst_new(:,j) = KELVIN+(ape_dsst*(1.-(sin(3./2.*rad_lat_2d(:,j))**2)))  
             !write(6,*) 'SST profile', rad_lat_2d(1,j)*180/PI, ' j:', j, ' sst:', sst_new(1,j)
         else
             ! from 60N/S to pole
