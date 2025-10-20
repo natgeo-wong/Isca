@@ -137,6 +137,7 @@ character(len=256) :: flux_lhe_anom_file_name  = 'INPUT/flux_lhe_anom.nc'
 character(len=256) :: flux_lhe_anom_field_name = 'flux_lhe_anom'
 
 real :: ape_sst_max = KELVIN + 27.0
+real :: ape_sst_eq  = 0.
 
 namelist/mixed_layer_nml/ evaporation, depth, qflux_amp, qflux_width, tconst,&
                               delta_T, prescribe_initial_dist,albedo_value,  &
@@ -156,7 +157,7 @@ namelist/mixed_layer_nml/ evaporation, depth, qflux_amp, qflux_width, tconst,&
                               ice_concentration_threshold, ice_albedo_method,&
                               add_latent_heat_flux_anom,flux_lhe_anom_file_name,&
                               flux_lhe_anom_field_name, qflux_field_name,    &
-                              do_ape_sst, ape_sst_max
+                              do_ape_sst, ape_sst_max, ape_sst_eq
 
 !=================================================================================================================================
 
@@ -708,9 +709,21 @@ if (do_ape_sst) then
     !      physical parametrizations: I: the proposal"
     ! using a constant longitude.
     do j=js,je   
-        if ( (rad_lat_2d(1,j) .gt. -PI/3.) .and. (rad_lat_2d(1,j) .lt. PI/3.) ) then 
+        if (abs(rad_lat_2d(1,j)) .lt. (ape_sst_eq/180.*PI) ) then 
             ! between 60N-60S
-            sst_new(:,j) = KELVIN+(ape_dsst*(1.-(sin(3./2.*rad_lat_2d(:,j))**2)))  
+            sst_new(:,j) = ape_sst_max
+            !write(6,*) 'SST profile', rad_lat_2d(1,j)*180/PI, ' j:', j, ' sst:', sst_new(1,j)
+        else if ( (rad_lat_2d(1,j) .gt. -PI/3.) .and. (rad_lat_2d(1,j) .lt. -ape_sst_eq/180.*PI) ) then 
+            ! between 60N-60S
+            sst_new(:,j) = KELVIN+(ape_dsst*(1.-(sin(3./2.* &
+            (rad_lat_2d(:,j) + ape_sst_eq/180.*PI) / (PI/3 - ape_sst_eq/180.*PI) &
+            )**2)))  
+            !write(6,*) 'SST profile', rad_lat_2d(1,j)*180/PI, ' j:', j, ' sst:', sst_new(1,j)
+        else if ( (rad_lat_2d(1,j) .lt.  PI/3.) .and. (rad_lat_2d(1,j) .gt.  ape_sst_eq/180.*PI) ) then 
+            ! between 60N-60S
+            sst_new(:,j) = KELVIN+(ape_dsst*(1.-(sin(3./2.* &
+            (rad_lat_2d(:,j) - ape_sst_eq/180.*PI) / (PI/3 - ape_sst_eq/180.*PI) &
+            )**2)))  
             !write(6,*) 'SST profile', rad_lat_2d(1,j)*180/PI, ' j:', j, ' sst:', sst_new(1,j)
         else
             ! from 60N/S to pole
